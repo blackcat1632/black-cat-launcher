@@ -104,7 +104,7 @@ function httpsGet(url, headers = {}) {
 // ── Step 1: 開啟微軟登入視窗，取得 auth code ──────────────────────────────────
 function openMicrosoftLogin() {
   return new Promise((resolve, reject) => {
-    const authUrl = `https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize`
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`
       + `?client_id=${CLIENT_ID}`
       + `&response_type=code`
       + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
@@ -140,7 +140,7 @@ function openMicrosoftLogin() {
 // ── Step 2: auth code → MS access token ──────────────────────────────────────
 async function getMicrosoftToken(authCode) {
   const res = await httpsPost(
-    'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+    'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
