@@ -20,7 +20,6 @@ const https = require('https');
 // 3. Redirect URI 填 http://localhost:4892/callback
 // 4. 複製 Application (client) ID 填入下方
 const CLIENT_ID = process.env.MS_CLIENT_ID;
-const CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
 const REDIRECT_URI = 'http://localhost:4892/callback';
 const SCOPE = 'XboxLive.signin offline_access';
 
@@ -143,7 +142,6 @@ async function getMicrosoftToken(authCode) {
     'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     {
       client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
       code: authCode,
       grant_type: 'authorization_code',
       redirect_uri: REDIRECT_URI,
