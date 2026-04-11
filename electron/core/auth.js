@@ -19,8 +19,8 @@ const https = require('https');
 // 2. Azure Active Directory → App registrations → New registration
 // 3. Redirect URI 填 http://localhost:4892/callback
 // 4. 複製 Application (client) ID 填入下方
-const CLIENT_ID = process.env.MS_CLIENT_ID || 'b07ab869-5330-42fc-ad8b-a7d6e0306d5c';
-const CLIENT_SECRET = process.env.MS_CLIENT_SECRET || 'bkV8Q~djdDeB2Y8Z1NJFPipSLZ3y25-jX-1r.awA';
+const CLIENT_ID = process.env.MS_CLIENT_ID;
+const CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
 const REDIRECT_URI = 'http://localhost:4892/callback';
 const SCOPE = 'XboxLive.signin offline_access';
 
