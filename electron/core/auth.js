@@ -237,7 +237,7 @@ async function refreshAuth(savedAuth) {
   try {
     if (!savedAuth?.refreshToken) throw new Error('無 refresh token');
     const msTokens = await httpsPost(
-      'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
       {
         client_id: CLIENT_ID,
         refresh_token: savedAuth.refreshToken,
