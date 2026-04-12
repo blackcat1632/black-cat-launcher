@@ -141,8 +141,27 @@ async function openMicrosoftLogin(codeChallenge) {
 
   win.loadURL(authUrl.toString());
 
-  return new Promise((resolve, reject) => {
-    win.on('closed', () => reject(new Error('使用者關閉了登入視窗')));
+  // 監聽 redirect 到 callback URL
+  win.webContents.on('will-redirect', (event, url) => {
+    if (url.startsWith('http://localhost:4892/callback')) {
+      const urlObj = new URL(url);
+      const code   = urlObj.searchParams.get('code');
+      const error  = urlObj.searchParams.get('error');
+      event.preventDefault();
+      win.close();
+      // 手動送給 server
+      const http = require('http');
+      http.get(url).on('error', () => {});
+    }
+  });
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith('http://localhost:4892/callback')) {
+      event.preventDefault();
+      win.close();
+      const http = require('http');
+      http.get(url).on('error', () => {});
+    }
   });
 }
 
