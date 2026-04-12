@@ -10,7 +10,7 @@ const crypto = require('crypto');
 
 const CLIENT_ID    = process.env.MS_CLIENT_ID;
 const REDIRECT_URI = 'http://localhost:4892/callback';
-const SCOPE = 'openid offline_access https://graph.microsoft.com/User.Read XboxLive.signin';
+const SCOPE = 'openid offline_access';
 
 // ── PKCE 工具 ─────────────────────────────────────────────────────────────────
 function generateCodeVerifier() {
@@ -187,7 +187,7 @@ async function getXboxLiveToken(msAccessToken) {
   const res = await httpPostJson(
     'https://user.auth.xboxlive.com/user/authenticate',
     {
-      Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `d=${msAccessToken}`, },
+      Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `t=${msAccessToken}`, },
       RelyingParty: 'http://auth.xboxlive.com',
       TokenType: 'JWT',
     }
