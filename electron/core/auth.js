@@ -10,7 +10,7 @@ const crypto = require('crypto');
 
 const CLIENT_ID    = process.env.MS_CLIENT_ID;
 const REDIRECT_URI = 'http://localhost:4892/callback';
-const SCOPE = 'openid offline_access https://graph.microsoft.com/User.Read';
+const SCOPE = 'openid offline_access https://graph.microsoft.com/User.Read XboxLive.signin';
 
 // ── PKCE 工具 ─────────────────────────────────────────────────────────────────
 function generateCodeVerifier() {
