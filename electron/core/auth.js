@@ -64,7 +64,11 @@ function httpPostJson(url, data, headers = {}) {
     const req = https.request(options, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve(d); } });
+      res.on('end', () => {
+        console.log('httpPostJson status:', res.statusCode);
+        console.log('httpPostJson body:', d);
+        try { resolve(JSON.parse(d)); } catch(e) { resolve(d); }
+      });
     });
     req.on('error', reject);
     req.write(body);
@@ -190,12 +194,13 @@ async function getXboxLiveToken(msAccessToken) {
       Properties: {
         AuthMethod: 'RPS',
         SiteName:   'user.auth.xboxlive.com',
-        RpsTicket:  msAccessToken,
+        RpsTicket:  `d=${msAccessToken}`,
       },
       RelyingParty: 'http://auth.xboxlive.com',
       TokenType:    'JWT',
     }
   );
+  console.log('XBL response:', JSON.stringify(res));
   if (!res.Token) throw new Error('無法取得 Xbox Live Token: ' + JSON.stringify(res));
   return { token: res.Token, userHash: res.DisplayClaims.xui[0].uhs };
 }
