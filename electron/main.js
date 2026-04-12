@@ -1,8 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
-const path  = require('path');
-const fs    = require('fs');
-const os    = require('os');
+const fs = require('fs');
+const os = require('os');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
