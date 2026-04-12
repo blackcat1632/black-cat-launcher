@@ -10,7 +10,7 @@ const crypto = require('crypto');
 
 const CLIENT_ID    = process.env.MS_CLIENT_ID;
 const REDIRECT_URI = 'http://localhost:4892/callback';
-const SCOPE = 'offline_access';
+const SCOPE = 'openid offline_access';
 
 // ── PKCE 工具 ─────────────────────────────────────────────────────────────────
 function generateCodeVerifier() {
