@@ -20,7 +20,7 @@ const https = require('https');
 // 3. Redirect URI 填 http://localhost:4892/callback
 // 4. 複製 Application (client) ID 填入下方
 const CLIENT_ID = process.env.MS_CLIENT_ID;
-const REDIRECT_URI = 'http://localhost:4892/callback';
+const REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient';
 const SCOPE = 'XboxLive.signin offline_access';
 
 function httpsPost(url, data, headers = {}) {
