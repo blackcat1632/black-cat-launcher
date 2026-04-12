@@ -187,12 +187,16 @@ async function getXboxLiveToken(msAccessToken) {
   const res = await httpPostJson(
     'https://user.auth.xboxlive.com/user/authenticate',
     {
-      Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `t=${msAccessToken}`, },
+      Properties: {
+        AuthMethod: 'RPS',
+        SiteName:   'user.auth.xboxlive.com',
+        RpsTicket:  msAccessToken,
+      },
       RelyingParty: 'http://auth.xboxlive.com',
-      TokenType: 'JWT',
+      TokenType:    'JWT',
     }
   );
-  if (!res.Token) throw new Error('無法取得 Xbox Live Token');
+  if (!res.Token) throw new Error('無法取得 Xbox Live Token: ' + JSON.stringify(res));
   return { token: res.Token, userHash: res.DisplayClaims.xui[0].uhs };
 }
 
