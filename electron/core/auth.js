@@ -9,7 +9,7 @@ const http  = require('http');
 const crypto = require('crypto');
 
 const CLIENT_ID    = process.env.MS_CLIENT_ID;
-const REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient';
+const REDIRECT_URI = 'http://localhost:4892/callback';
 const SCOPE        = 'XboxLive.signin offline_access';
 
 // ── PKCE 工具 ─────────────────────────────────────────────────────────────────
