@@ -8,9 +8,9 @@ const https  = require('https');
 const http   = require('http');
 const crypto = require('crypto');
 
-const CLIENT_ID    = '99781bcc-9baf-4b21-b2dc-fb726ac1cd5c';
+const CLIENT_ID = '00000000402b5328';
 const REDIRECT_URI = 'http://localhost:4892/callback';
-const SCOPE = 'XboxLive.signin offline_access';
+const SCOPE = 'service::user.auth.xboxlive.com::MBI_SSL';
 
 function generateCodeVerifier() {
   return crypto.randomBytes(32).toString('base64url');
@@ -124,7 +124,7 @@ function startCallbackServer() {
 
 function openMicrosoftLogin(codeChallenge) {
   return new Promise((resolve, reject) => {
-    const authUrl = new URL('https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize');
+    const authUrl = new URL('https://login.live.com/oauth20_authorize.srf');
     authUrl.searchParams.set('client_id',             CLIENT_ID);
     authUrl.searchParams.set('response_type',         'code');
     authUrl.searchParams.set('redirect_uri',          REDIRECT_URI);
@@ -161,7 +161,7 @@ function openMicrosoftLogin(codeChallenge) {
 
 async function getMicrosoftToken(authCode, codeVerifier) {
   const res = await httpPost(
-    'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+    'https://login.live.com/oauth20_token.srf',
     {
       client_id:     CLIENT_ID,
       code:          authCode,
@@ -266,7 +266,7 @@ async function microsoftLogin() {
 async function refreshAuth(savedAuth) {
   if (!savedAuth?.refreshToken) throw new Error('無 refresh token，請重新登入');
   const msTokens = await httpPost(
-    'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+    'https://login.live.com/oauth20_token.srf',
     {
       client_id:     CLIENT_ID,
       refresh_token: savedAuth.refreshToken,
