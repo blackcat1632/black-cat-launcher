@@ -8,7 +8,7 @@ const https = require('https');
 const http  = require('http');
 const crypto = require('crypto');
 
-const CLIENT_ID    ='c4b0736a-9a99-4972-b6b1-e27496a0640d';
+const CLIENT_ID    ='99781bcc-9baf-4b21-b2dc-fb726ac1cd5c';
 const REDIRECT_URI = 'http://localhost:4892/callback';
 const SCOPE = 'XboxLive.signin offline_access';
 
@@ -135,6 +135,8 @@ async function openMicrosoftLogin(codeChallenge) {
   authUrl.searchParams.set('code_challenge',        codeChallenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
   authUrl.searchParams.set('prompt',                'select_account');
+  authUrl.searchParams.set('prompt', 'consent'); 
+  authUrl.searchParams.set('scope', 'XboxLive.signin offline_access');
 
   const win = new BrowserWindow({
     width: 520, height: 680,
