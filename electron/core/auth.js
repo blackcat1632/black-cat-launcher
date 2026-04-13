@@ -215,7 +215,12 @@ async function getXSTSToken(xblToken) {
 async function getMinecraftToken(xstsToken, userHash) {
   const res = await httpPostJson(
     'https://api.minecraftservices.com/authentication/login_with_xbox',
-    { identityToken: `XBL3.0 x=${userHash};${xstsToken}` }
+    { identityToken: `XBL3.0 x=${userHash};${xstsToken}` },
+    {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'BlackCatLauncher/1.0.0 (Windows)',
+    }
   );
   if (!res.access_token) throw new Error('無法取得 Minecraft Token: ' + JSON.stringify(res));
   return res.access_token;
