@@ -8,9 +8,9 @@ const https = require('https');
 const http  = require('http');
 const crypto = require('crypto');
 
-const CLIENT_ID    = process.env.MS_CLIENT_ID;
+const CLIENT_ID    ='c4b0736a-9a99-4972-b6b1-e27496a0640d';
 const REDIRECT_URI = 'http://localhost:4892/callback';
-const SCOPE = 'openid offline_access';
+const SCOPE = 'XboxLive.signin offline_access';
 
 // ── PKCE 工具 ─────────────────────────────────────────────────────────────────
 function generateCodeVerifier() {
