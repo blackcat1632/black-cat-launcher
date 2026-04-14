@@ -247,7 +247,14 @@ async function launchGame({ profile, baseDir, javaExe, accessToken, uuid, userna
     gameArgs = versionJson.minecraftArguments.split(' ').map(a => substituteVars(a, vars));
   }
 
-  const finalArgs = [...jvmArgs, mainClass, ...gameArgs];
+ // 過濾掉 quickPlay 相關參數（會造成衝突）
+const filteredGameArgs = gameArgs.filter((arg, i, arr) => {
+  if (arg.startsWith('--quickPlay')) return false;
+  if (i > 0 && arr[i-1].startsWith('--quickPlay')) return false;
+  return true;
+});
+
+const finalArgs = [...jvmArgs, mainClass, ...filteredGameArgs];
 
   onLog && onLog(`🚀 Java: ${javaExe}`);
   onLog && onLog(`📁 遊戲目錄: ${gameDir}`);
