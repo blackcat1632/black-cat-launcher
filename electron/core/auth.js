@@ -147,7 +147,7 @@ async function getXboxLiveToken(msAccessToken) {
       Properties: {
         AuthMethod: 'RPS',
         SiteName:   'user.auth.xboxlive.com',
-        RpsTicket:  msAccessToken,
+        RpsTicket:  `d=${msAccessToken}`,  // ← 加這個 d= 前綴
       },
       RelyingParty: 'http://auth.xboxlive.com',
       TokenType:    'JWT',
