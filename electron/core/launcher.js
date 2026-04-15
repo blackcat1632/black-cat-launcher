@@ -189,25 +189,28 @@ async function launchGame({ profile, baseDir, javaExe, accessToken, uuid, userna
   if (!mainClass) throw new Error('找不到 mainClass，版本 JSON 可能損壞');
   if (!classpath)  throw new Error('Classpath 為空，請重新安裝');
 
-  const vars = {
-    auth_player_name:   username || 'Player',
-    version_name:       launchVersionId,
-    game_directory:     gameDir,
-    assets_root:        assetsDir,
-    assets_index_name:  assetIndexId,
-    auth_uuid:          uuid          || '00000000-0000-0000-0000-000000000000',
-    auth_access_token:  accessToken   || '0',
-    auth_session:       accessToken   || '0',
-    user_type:          accessToken   ? 'msa' : 'offline',
-    version_type:       versionJson.type || 'release',
-    classpath,
-    natives_directory:  nativesDir,
-    launcher_name:      '黑貓啟動器',
-    launcher_version:   '1.0.0',
-    user_properties:    '{}',
-    game_assets:        assetsDir,
-    auth_player_name_safe: (username || 'Player').replace(/[^a-zA-Z0-9_]/g, '_'),
-  };
+const isOnline = !!accessToken;
+const vars = {
+  auth_player_name:   username || 'Player',
+  version_name:       launchVersionId,
+  game_directory:     gameDir,
+  assets_root:        assetsDir,
+  assets_index_name:  assetIndexId,
+  auth_uuid:          uuid || '00000000-0000-0000-0000-000000000000',
+  auth_access_token:  accessToken || 'null',
+  auth_session:       accessToken ? `token:${accessToken}:${uuid}` : 'null',
+  user_type:          isOnline ? 'msa' : 'legacy',
+  version_type:       versionJson.type || 'release',
+  classpath,
+  natives_directory:  nativesDir,
+  launcher_name:      '黑貓啟動器',
+  launcher_version:   '1.0.0',
+  user_properties:    '{}',
+  game_assets:        assetsDir,
+  auth_player_name_safe: (username || 'Player').replace(/[^a-zA-Z0-9_]/g, '_'),
+  profile_name:       username || 'Player',
+  version_type:       versionJson.type || 'release',
+};
 
   // JVM 基本參數
   const jvmBase = [
@@ -253,6 +256,15 @@ const filteredGameArgs = gameArgs.filter((arg, i, arr) => {
   if (i > 0 && arr[i-1].startsWith('--quickPlay')) return false;
   return true;
 });
+
+const isLegacy = !!versionJson.minecraftArguments;
+if (isLegacy && !filteredGameArgs.includes('--username')) {
+  filteredGameArgs.push('--username', username || 'Player');
+  filteredGameArgs.push('--session', accessToken ? `token:${accessToken}:${uuid}` : 'null');
+  filteredGameArgs.push('--version', launchVersionId);
+  filteredGameArgs.push('--gameDir', gameDir);
+  filteredGameArgs.push('--assetsDir', assetsDir);
+}
 
 const finalArgs = [...jvmArgs, mainClass, ...filteredGameArgs];
 

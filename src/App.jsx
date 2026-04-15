@@ -254,14 +254,26 @@ function DeleteConfirmModal({ name, onClose, onDelete }) {
   );
 }
 
-function ProfileFormModal({ initial, onClose, onSave, onDelete, isEdit=false }) {
-  const [name, setName]           = useState(initial?.name||"");
-  const [ver, setVer]             = useState(initial?.ver||VERSIONS[0]);
-  const [minRam, setMinRam]       = useState(initial?.minRam||"512");
-  const [maxRam, setMaxRam]       = useState(initial?.maxRam||"4096");
-  const [loader, setLoader]       = useState(initial?.loader||"Vanilla");
-  const [loaderVer, setLoaderVer] = useState(initial?.loaderVer||"—");
-  const [confirmDel, setConfirmDel] = useState(false);
+function ProfileFormModal({ initial, onClose, onSave, onDelete, isEdit = false }) {
+    const [name, setName] = useState(initial?.name || "");
+    const [ver, setVer] = useState(initial?.ver || "1.21.11");
+    const [minRam, setMinRam] = useState(initial?.minRam || "512");
+    const [maxRam, setMaxRam] = useState(initial?.maxRam || "4096");
+    const [loader, setLoader] = useState(initial?.loader || "Vanilla");
+    const [loaderVer, setLoaderVer] = useState(initial?.loaderVer || "—");
+    const [confirmDel, setConfirmDel] = useState(false);
+    const [versionList, setVersionList] = useState(["1.21.11"]); // 預設
+    const [loadingVers, setLoadingVers] = useState(true);
+
+    useEffect(() => {
+        setLoadingVers(true);
+        api.getVersions().then(list => {
+            if (list && list.length > 0) {
+                setVersionList(list);
+            }
+            setLoadingVers(false);
+        }).catch(() => setLoadingVers(false));
+    }, []);
 
   const handleLoaderChange = (v) => { setLoader(v); setLoaderVer(LOADER_VERSIONS[v][0]); };
 
@@ -272,7 +284,7 @@ function ProfileFormModal({ initial, onClose, onSave, onDelete, isEdit=false }) 
         {/* Row 1: name + version + icon */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 88px",gap:12,alignItems:"center"}}>
           <Input value={name} onChange={setName} placeholder="輸入名稱"/>
-          <Select value={ver} onChange={setVer} options={VERSIONS}/>
+          <Select value={ver} onChange={setVer} options={loadingVers ? ["載入中..."] : versionList} />
           <div style={{
             border:`2px dashed ${C.border}`,borderRadius:10,height:60,
             display:"flex",alignItems:"center",justifyContent:"center",
