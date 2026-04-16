@@ -42,10 +42,19 @@ function isJavaInstalled(baseDir, javaVersion) {
 
 function getAdoptiumDownloadUrl(javaVersion) {
   const arch = process.arch === 'x64' ? 'x64' : 'x86';
+  // 改用阿里雲 Dragonwell 或 Microsoft Build of OpenJDK
   const os = process.platform === 'win32' ? 'windows' :
-              process.platform === 'darwin' ? 'mac' : 'linux';
-  const ext = process.platform === 'win32' ? 'zip' : 'tar.gz';
-  return `https://api.adoptium.net/v3/binary/latest/${javaVersion}/ga/${os}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
+             process.platform === 'darwin' ? 'mac' : 'linux';
+  
+  // Microsoft Build of OpenJDK（速度較快）
+  if (javaVersion === 21) {
+    return `https://aka.ms/download-jdk/microsoft-jdk-21.0.5-${os}-${arch}.zip`;
+  }
+  if (javaVersion === 17) {
+    return `https://aka.ms/download-jdk/microsoft-jdk-17.0.13-${os}-${arch}.zip`;
+  }
+  // Java 8 還是用 Adoptium
+  return `https://api.adoptium.net/v3/binary/latest/8/ga/${os}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
 }
 
 function downloadFile(url, dest, onProgress) {
