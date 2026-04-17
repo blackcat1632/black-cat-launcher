@@ -1,8 +1,7 @@
-const path   = require('path');
-
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
-const fs = require('fs');
-const os = require('os');
+const path  = require('path');
+const fs    = require('fs');
+const os    = require('os');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
@@ -18,6 +17,7 @@ const { installVersion }   = require('./core/installer');
 const { installFabric, getFabricLoaderVersions } = require('./core/fabric');
 const { installForge, getForgeVersions, installNeoForge, getNeoForgeVersions } = require('./core/forge');
 const { launchGame }       = require('./core/launcher');
+const discord              = require('./core/discord');
 
 let mainWindow;
 let runningGame = null;
@@ -41,8 +41,11 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
 }
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.whenReady().then(() => {
+  createWindow();
+  discord.connect();
+});
+app.on('window-all-closed', () => { discord.disconnect(); if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
 function send(ch, ...args) {
@@ -92,6 +95,7 @@ ipcMain.handle('get-neoforge-versions', async (_, mcVer) => {
 ipcMain.handle('install-version', async (_, { profileId, mcVersion, loader, loaderVer }) => {
   try {
     send('install-progress', { profileId, stage:'java', pct:0, msg:'準備 Java...' });
+    discord.setInstallingActivity(mcVersion);
     const javaExe = await ensureJava(BASE_DIR, mcVersion, (pct,_t,msg) => {
       send('install-progress', { profileId, stage:'java', pct, msg });
     });
@@ -133,6 +137,7 @@ ipcMain.handle('install-version', async (_, { profileId, mcVersion, loader, load
       }
     }
 
+    discord.setIdleActivity();
     send('install-progress', { profileId, stage:'done', pct:100, msg:'安裝完成！' });
     return { success:true, installedVersionId };
   } catch(e) {
@@ -147,6 +152,7 @@ ipcMain.handle('launch-game', async (_, { profile, auth }) => {
   try {
     const javaExe = await ensureJava(BASE_DIR, profile.ver, (pct,_t,msg) => send('launch-log', `[Java] ${msg}`));
     send('launch-log', `▶ 正在啟動 ${profile.name}...`);
+    discord.setPlayingActivity(profile.name, profile.ver, profile.loader);
     const proc = await launchGame({
       profile, baseDir:BASE_DIR, javaExe,
       accessToken: auth?.accessToken||null,
@@ -155,6 +161,7 @@ ipcMain.handle('launch-game', async (_, { profile, auth }) => {
       onLog: (msg) => send('launch-log', msg),
       onExit: (code) => {
         runningGame = null;
+        discord.setIdleActivity();
         if (code === 0) { send('game-exited', { code:0 }); return; }
         const crashDir = path.join(BASE_DIR,'instances',profile.name.replace(/[^a-zA-Z0-9_\-]/g,'_'),'crash-reports');
         let crashLog = '';

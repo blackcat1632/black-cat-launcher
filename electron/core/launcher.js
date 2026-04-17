@@ -1,6 +1,5 @@
 /**
  * launcher.js — 組合啟動參數並執行 Minecraft
- * 修復版：正確處理 Vanilla / Fabric / Forge / NeoForge 啟動
  */
 
 const path   = require('path');
@@ -8,13 +7,11 @@ const fs     = require('fs');
 const { spawn } = require('child_process');
 const { fetchVersionInfo } = require('./versions');
 
-// ── 讀取版本 JSON（支援繼承 inheritsFrom）────────────────────────────────────
+// ── 讀取版本 JSON（支援 inheritsFrom）────────────────────────────────────────
 async function resolveVersionJson(versionId, baseDir) {
   const jsonPath = path.join(baseDir, 'versions', versionId, `${versionId}.json`);
   if (!fs.existsSync(jsonPath)) throw new Error(`找不到版本 JSON: ${versionId}`);
   const json = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-
-  // 若有 inheritsFrom，合併父版本
   if (json.inheritsFrom) {
     const parent = await resolveVersionJson(json.inheritsFrom, baseDir);
     return mergeVersionJson(parent, json);
@@ -24,26 +21,21 @@ async function resolveVersionJson(versionId, baseDir) {
 
 function mergeVersionJson(parent, child) {
   const merged = { ...parent, ...child };
-  // 合併 libraries
   merged.libraries = [...(child.libraries || []), ...(parent.libraries || [])];
-  // 合併 arguments
   if (parent.arguments && child.arguments) {
     merged.arguments = {
       game: [...(parent.arguments.game || []), ...(child.arguments.game || [])],
       jvm:  [...(parent.arguments.jvm  || []), ...(child.arguments.jvm  || [])],
     };
   }
-  // 保留子版本的 mainClass
   if (child.mainClass) merged.mainClass = child.mainClass;
   return merged;
 }
 
-// ── 建立 classpath ────────────────────────────────────────────────────────────
+// ── Classpath ─────────────────────────────────────────────────────────────────
 function buildClasspath(versionJson, baseDir) {
   const libs = [];
-
   for (const lib of (versionJson.libraries || [])) {
-    // 檢查 OS rules
     if (lib.rules) {
       const allowed = lib.rules.some(r => {
         if (r.action !== 'allow') return false;
@@ -55,52 +47,39 @@ function buildClasspath(versionJson, baseDir) {
       });
       if (!allowed) continue;
     }
-
     if (lib.downloads?.artifact) {
       const p = path.join(baseDir, 'libraries', lib.downloads.artifact.path);
       if (fs.existsSync(p)) libs.push(p);
-    } else if (lib.name && lib.url !== undefined) {
-      // Fabric / Forge style (maven name only)
-      const mavenPath = mavenToPath(lib.name);
-      const p = path.join(baseDir, 'libraries', mavenPath);
+    } else if (lib.name) {
+      const p = path.join(baseDir, 'libraries', mavenToPath(lib.name));
       if (fs.existsSync(p)) libs.push(p);
     }
   }
-
-  // 加入主 jar（若有 jar 欄位或用 id）
-  const jarId = versionJson.jar || versionJson.id;
+  const jarId   = versionJson.jar || versionJson.id;
   const jarPath = path.join(baseDir, 'versions', jarId, `${jarId}.jar`);
   if (fs.existsSync(jarPath)) libs.push(jarPath);
-
   return [...new Set(libs)].join(path.delimiter);
 }
 
 function mavenToPath(name) {
-  const parts = name.split(':');
-  const [group, artifact, version, classifier] = parts;
+  const [group, artifact, version, classifier] = name.split(':');
   const groupPath = group.replace(/\./g, '/');
-  const jarName = classifier
-    ? `${artifact}-${version}-${classifier}.jar`
-    : `${artifact}-${version}.jar`;
-  return `${groupPath}/${artifact}/${version}/${jarName}`;
+  const jar = classifier ? `${artifact}-${version}-${classifier}.jar` : `${artifact}-${version}.jar`;
+  return `${groupPath}/${artifact}/${version}/${jar}`;
 }
 
 // ── 解壓 natives ──────────────────────────────────────────────────────────────
 async function extractNatives(versionJson, baseDir, nativesDir) {
   const { exec } = require('child_process');
   fs.mkdirSync(nativesDir, { recursive: true });
-
   for (const lib of (versionJson.libraries || [])) {
     if (!lib.downloads?.classifiers) continue;
     const key = process.platform === 'win32' ? 'natives-windows' :
                 process.platform === 'darwin' ? 'natives-macos' : 'natives-linux';
-    const native = lib.downloads.classifiers[key]
-      || lib.downloads.classifiers[key.replace('-', '_')];
+    const native = lib.downloads.classifiers[key] || lib.downloads.classifiers[key.replace('-','_')];
     if (!native) continue;
-
     const jar = path.join(baseDir, 'libraries', native.path);
     if (!fs.existsSync(jar)) continue;
-
     await new Promise(resolve => {
       if (process.platform === 'win32') {
         exec(`powershell -command "Add-Type -A System.IO.Compression.FileSystem; try { [IO.Compression.ZipFile]::ExtractToDirectory('${jar.replace(/'/g,"''")}','${nativesDir.replace(/'/g,"''")}') } catch {}"`, resolve);
@@ -111,7 +90,7 @@ async function extractNatives(versionJson, baseDir, nativesDir) {
   }
 }
 
-// ── 解析帶 rules 的參數 ───────────────────────────────────────────────────────
+// ── 參數解析 ──────────────────────────────────────────────────────────────────
 function resolveArgs(args, vars) {
   if (!args) return [];
   const result = [];
@@ -144,7 +123,7 @@ function resolveArgs(args, vars) {
 }
 
 function substituteVars(str, vars) {
-  return str.replace(/\$\{([^}]+)\}/g, (_, key) => vars[key] !== undefined ? vars[key] : `\${${key}}`);
+  return str.replace(/\$\{([^}]+)\}/g, (_, key) => vars[key] !== undefined ? vars[key] : '');
 }
 
 // ── 主啟動函式 ────────────────────────────────────────────────────────────────
@@ -153,32 +132,27 @@ async function launchGame({ profile, baseDir, javaExe, accessToken, uuid, userna
 
   onLog && onLog(`📋 載入版本資訊...`);
 
-  // 決定要載入哪個版本 JSON
   let launchVersionId = ver;
   if (loader === 'Fabric' && loaderVer && loaderVer !== '—') {
     const fabricId = `fabric-loader-${loaderVer}-${ver}`;
-    const fabricPath = path.join(baseDir, 'versions', fabricId, `${fabricId}.json`);
-    if (fs.existsSync(fabricPath)) launchVersionId = fabricId;
+    if (fs.existsSync(path.join(baseDir, 'versions', fabricId, `${fabricId}.json`)))
+      launchVersionId = fabricId;
   } else if ((loader === 'Forge' || loader === 'NeoForge') && installedVersionId) {
     launchVersionId = installedVersionId;
   }
 
   onLog && onLog(`📦 版本 ID: ${launchVersionId}`);
 
-  // 載入並合併版本 JSON（處理 inheritsFrom）
   const versionJson = await resolveVersionJson(launchVersionId, baseDir);
+  const safeName    = name.replace(/[^\w\-]/g, '_');
+  const gameDir     = path.join(baseDir, 'instances', safeName);
+  const assetsDir   = path.join(baseDir, 'assets');
+  const nativesDir  = path.join(baseDir, 'versions', ver, 'natives');
 
-  // 遊戲目錄（每個安裝檔獨立）
-  const safeName  = name.replace(/[^\w\-]/g, '_');
-  const gameDir   = path.join(baseDir, 'instances', safeName);
-  const assetsDir = path.join(baseDir, 'assets');
-  const nativesDir = path.join(baseDir, 'versions', ver, 'natives');
-
-  fs.mkdirSync(gameDir,   { recursive: true });
+  fs.mkdirSync(gameDir,    { recursive: true });
   fs.mkdirSync(nativesDir, { recursive: true });
 
   onLog && onLog(`🔧 解壓 natives...`);
-  // 用原版 JSON 解壓 natives（Fabric/Forge inheritsFrom 原版）
   const vanillaJson = await resolveVersionJson(ver, baseDir);
   await extractNatives(vanillaJson, baseDir, nativesDir);
 
@@ -189,35 +163,41 @@ async function launchGame({ profile, baseDir, javaExe, accessToken, uuid, userna
   if (!mainClass) throw new Error('找不到 mainClass，版本 JSON 可能損壞');
   if (!classpath)  throw new Error('Classpath 為空，請重新安裝');
 
-const isOnline = !!accessToken;
-const vars = {
-  auth_player_name:   username || 'Player',
-  version_name:       launchVersionId,
-  game_directory:     gameDir,
-  assets_root:        assetsDir,
-  assets_index_name:  assetIndexId,
-  auth_uuid:          uuid || '00000000-0000-0000-0000-000000000000',
-  auth_access_token:  accessToken || 'null',
-  auth_session:       accessToken ? `token:${accessToken}:${uuid}` : 'null',
-  user_type:          isOnline ? 'msa' : 'legacy',
-  version_type:       versionJson.type || 'release',
-  classpath,
-  natives_directory:  nativesDir,
-  launcher_name:      '黑貓啟動器',
-  launcher_version:   '1.0.0',
-  user_properties:    '{}',
-  game_assets:        assetsDir,
-  auth_player_name_safe: (username || 'Player').replace(/[^a-zA-Z0-9_]/g, '_'),
-  profile_name:       username || 'Player',
-  version_type:       versionJson.type || 'release',
-};
+  // ── 確保登入資訊正確 ──────────────────────────────────────────────────────
+  const isOnline    = !!(accessToken && accessToken !== 'null' && accessToken !== '0');
+  const playerName  = username || 'Player';
+  const playerUUID  = uuid || '00000000-0000-0000-0000-000000000000';
+  const playerToken = isOnline ? accessToken : '0';
 
-  // JVM 基本參數
+  onLog && onLog(`👤 玩家: ${playerName} (${isOnline ? '正版' : '離線'})`);
+
+  const vars = {
+    auth_player_name:      playerName,
+    version_name:          launchVersionId,
+    game_directory:        gameDir,
+    assets_root:           assetsDir,
+    assets_index_name:     assetIndexId,
+    auth_uuid:             playerUUID,
+    auth_access_token:     playerToken,
+    auth_session:          isOnline ? `token:${playerToken}:${playerUUID}` : 'null',
+    user_type:             isOnline ? 'msa' : 'offline',
+    version_type:          versionJson.type || 'release',
+    classpath,
+    natives_directory:     nativesDir,
+    launcher_name:         'BlackCatLauncher',  // 必須純英文
+    launcher_version:      '1.0.0',
+    user_properties:       '{}',
+    game_assets:           assetsDir,
+    resolution_width:      '854',
+    resolution_height:     '480',
+  };
+
+  // ── JVM 參數 ──────────────────────────────────────────────────────────────
   const jvmBase = [
     `-Xms${minRam || 512}m`,
     `-Xmx${maxRam || 2048}m`,
     `-Djava.library.path=${nativesDir}`,
-    `-Dminecraft.launcher.brand=黑貓啟動器`,
+    `-Dminecraft.launcher.brand=BlackCatLauncher`,
     `-Dminecraft.launcher.version=1.0.0`,
     '-XX:+UseG1GC',
     '-XX:+ParallelRefProcEnabled',
@@ -229,44 +209,50 @@ const vars = {
     '-Dfile.encoding=UTF-8',
   ];
 
-  // 版本 JSON 內的 JVM 參數（新版格式）
   const jvmFromJson = resolveArgs(versionJson.arguments?.jvm, vars);
-
-  // 若版本 JSON 有提供 -cp，就不再自己加
   const hasCP = jvmFromJson.includes('-cp') || jvmFromJson.includes('--class-path');
-
   const jvmArgs = [
     ...jvmBase,
-    ...(jvmFromJson.length > 0 ? jvmFromJson : (!hasCP ? ['-cp', classpath] : [])),
+    ...(jvmFromJson.length > 0 ? jvmFromJson : []),
+    ...(!hasCP && jvmFromJson.length === 0 ? ['-cp', classpath] : []),
   ];
 
-  // Game 參數
+  // ── Game 參數 ─────────────────────────────────────────────────────────────
   let gameArgs = [];
   if (versionJson.arguments?.game) {
-    // 新格式（1.13+）
+    // 新格式 1.13+
     gameArgs = resolveArgs(versionJson.arguments.game, vars);
   } else if (versionJson.minecraftArguments) {
-    // 舊格式（1.12 以下）
+    // 舊格式 1.12 以下
     gameArgs = versionJson.minecraftArguments.split(' ').map(a => substituteVars(a, vars));
   }
 
- // 過濾掉 quickPlay 相關參數（會造成衝突）
-const filteredGameArgs = gameArgs.filter((arg, i, arr) => {
-  if (arg.startsWith('--quickPlay')) return false;
-  if (i > 0 && arr[i-1].startsWith('--quickPlay')) return false;
-  return true;
-});
+  // ── 過濾 quickPlay 衝突參數 ───────────────────────────────────────────────
+  const filteredGameArgs = [];
+  for (let i = 0; i < gameArgs.length; i++) {
+    if (gameArgs[i].startsWith('--quickPlay')) {
+      i++; // 跳過下一個值
+      continue;
+    }
+    filteredGameArgs.push(gameArgs[i]);
+  }
 
-const isLegacy = !!versionJson.minecraftArguments;
-if (isLegacy && !filteredGameArgs.includes('--username')) {
-  filteredGameArgs.push('--username', username || 'Player');
-  filteredGameArgs.push('--session', accessToken ? `token:${accessToken}:${uuid}` : 'null');
-  filteredGameArgs.push('--version', launchVersionId);
-  filteredGameArgs.push('--gameDir', gameDir);
-  filteredGameArgs.push('--assetsDir', assetsDir);
-}
+  // ── 舊版本補丁（1.12以下確保有必要參數）─────────────────────────────────
+  const isLegacy = !!versionJson.minecraftArguments;
+  if (isLegacy) {
+    if (!filteredGameArgs.includes('--username'))
+      filteredGameArgs.push('--username', playerName);
+    if (!filteredGameArgs.includes('--session'))
+      filteredGameArgs.push('--session', isOnline ? `token:${playerToken}:${playerUUID}` : '-');
+    if (!filteredGameArgs.includes('--version'))
+      filteredGameArgs.push('--version', launchVersionId);
+    if (!filteredGameArgs.includes('--gameDir'))
+      filteredGameArgs.push('--gameDir', gameDir);
+    if (!filteredGameArgs.includes('--assetsDir'))
+      filteredGameArgs.push('--assetsDir', assetsDir);
+  }
 
-const finalArgs = [...jvmArgs, mainClass, ...filteredGameArgs];
+  const finalArgs = [...jvmArgs, mainClass, ...filteredGameArgs];
 
   onLog && onLog(`🚀 Java: ${javaExe}`);
   onLog && onLog(`📁 遊戲目錄: ${gameDir}`);

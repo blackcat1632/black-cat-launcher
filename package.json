@@ -13,7 +13,7 @@
   "build": {
     "appId": "com.blackcat.launcher",
     "productName": "黑貓啟動器",
-    "copyright": "Copyright © 2025",
+    "copyright": "Copyright © 2026",
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"
@@ -38,9 +38,9 @@
     }
   },
   "dependencies": {
-    "dotenv": "^17.4.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "discord-rpc": "^4.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
