@@ -99,20 +99,31 @@ function resolveArgs(args, vars) {
       result.push(substituteVars(arg, vars));
     } else if (arg.rules) {
       const allowed = arg.rules.every(r => {
-        if (r.action === 'allow') {
-          if (!r.os) return true;
-          return (r.os.name === 'windows' && process.platform === 'win32') ||
-                 (r.os.name === 'osx'     && process.platform === 'darwin') ||
-                 (r.os.name === 'linux'   && process.platform === 'linux');
+        let isMatch = true;
+
+        // 判斷作業系統
+        if (r.os) {
+          const isWin = r.os.name === 'windows' && process.platform === 'win32';
+          const isMac = r.os.name === 'osx'     && process.platform === 'darwin';
+          const isLin = r.os.name === 'linux'   && process.platform === 'linux';
+          isMatch = isWin || isMac || isLin;
         }
-        if (r.action === 'disallow') {
-          if (!r.os) return false;
-          return !((r.os.name === 'windows' && process.platform === 'win32') ||
-                   (r.os.name === 'osx'     && process.platform === 'darwin') ||
-                   (r.os.name === 'linux'   && process.platform === 'linux'));
+
+        // 判斷 features（關鍵：解決試玩版問題）
+        if (r.features) {
+          // demo 玩家參數一律拒絕（我們是正版/離線，不是試玩）
+          if (r.features.is_demo_user !== undefined) {
+            isMatch = false;
+          }
+          // 自訂解析度允許（vars 已有 resolution_width/height）
+          if (r.features.has_custom_resolution !== undefined) {
+            isMatch = true;
+          }
         }
-        return true;
+
+        return r.action === 'allow' ? isMatch : !isMatch;
       });
+
       if (allowed) {
         const values = Array.isArray(arg.value) ? arg.value : [arg.value];
         values.forEach(v => result.push(substituteVars(v, vars)));
@@ -227,11 +238,16 @@ async function launchGame({ profile, baseDir, javaExe, accessToken, uuid, userna
     gameArgs = versionJson.minecraftArguments.split(' ').map(a => substituteVars(a, vars));
   }
 
-  // ── 過濾 quickPlay 衝突參數 ───────────────────────────────────────────────
+  // ── 過濾 quickPlay 衝突參數與試玩版參數 ──────────────────────────────────
   const filteredGameArgs = [];
   for (let i = 0; i < gameArgs.length; i++) {
+    // 攔截試玩版參數
+    if (gameArgs[i] === '--demo') {
+      continue;
+    }
+    // 跳過 quickPlay 參數
     if (gameArgs[i].startsWith('--quickPlay')) {
-      i++; // 跳過下一個值
+      i++;
       continue;
     }
     filteredGameArgs.push(gameArgs[i]);

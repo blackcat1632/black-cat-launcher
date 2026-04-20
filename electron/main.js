@@ -148,6 +148,7 @@ ipcMain.handle('install-version', async (_, { profileId, mcVersion, loader, load
 
 // Launch
 ipcMain.handle('launch-game', async (_, { profile, auth }) => {
+  console.log('[Launch] auth:', auth ? `${auth.username} token:${auth.accessToken?.substring(0,10)}...` : 'null');
   if (runningGame) return { success:false, error:'遊戲已在執行中' };
   try {
     const javaExe = await ensureJava(BASE_DIR, profile.ver, (pct,_t,msg) => send('launch-log', `[Java] ${msg}`));

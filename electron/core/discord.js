@@ -121,9 +121,12 @@ function setIdleActivity() {
 // 斷線
 function disconnect() {
   if (rpc) {
-    try { rpc.destroy(); } catch(e) {}
-    rpc = null;
-    connected = false;
+    try { rpc.clearActivity(); } catch(e) {}
+    setTimeout(() => {
+      try { rpc.destroy(); } catch(e) {}
+      rpc = null;
+      connected = false;
+    }, 500);
   }
 }
 
