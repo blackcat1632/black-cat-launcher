@@ -263,18 +263,33 @@ function ProfileFormModal({ initial, onClose, onSave, onDelete, isEdit = false }
     const [loaderVer, setLoaderVer] = useState(initial?.loaderVer || "—");
     const [confirmDel, setConfirmDel] = useState(false);
     const [versionList, setVersionList] = useState(["1.21.11"]); // 預設
-    const [loadingVers, setLoadingVers] = useState(true);
+    const [loaderVerList, setLoaderVerList] = useState(['—']);
 
-    useEffect(() => {
-        setLoadingVers(true);
-        api.getVersions().then(list => {
-            if (list && list.length > 0) {
-                setVersionList(list);
-            }
-            setLoadingVers(false);
-        }).catch(() => setLoadingVers(false));
-    }, []);
 
+    // 當載入器或 MC 版本改變時，自動抓對應的載入器版本並設預設值
+    useEffect(()=>{
+      if (loader === 'Vanilla') { setLoaderVer('—'); return; }
+      if (loader === 'Fabric') {
+        api.getFabricLoaders(ver).then(list => {
+          if (list?.length) setLoaderVer(list[0]); // 最新穩定版
+        });
+      }
+      if (loader === 'Forge') {
+        api.getForgeVersions(ver).then(list => {
+          if (list?.length) setLoaderVer(list[0]?.value || '—');
+        });
+      }
+      if (loader === 'NeoForge') {
+        api.getNeoForgeVersions(ver).then(list => {
+          if (list?.length) setLoaderVer(list[0] || '—');
+        });
+      }
+      if (loader === 'Quilt') {
+        api.getQuiltLoaders(ver).then(list => {
+          if (list?.length) setLoaderVer(list[0]);
+        });
+      }
+    }, [loader, ver]);
   const handleLoaderChange = (v) => { setLoader(v); setLoaderVer(LOADER_VERSIONS[v][0]); };
 
   return (
@@ -304,7 +319,7 @@ function ProfileFormModal({ initial, onClose, onSave, onDelete, isEdit = false }
         <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,
           display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Select value={loader} onChange={handleLoaderChange} options={LOADERS}/>
-          <Select value={loaderVer} onChange={setLoaderVer} options={LOADER_VERSIONS[loader]}/>
+          <Select value={loaderVer} onChange={setLoaderVer} options={loaderVerList}/>
         </div>
         {/* Buttons */}
         <div style={{
@@ -388,8 +403,11 @@ function ModrinthModal({ onClose, loader, mcVersion }) {
     try {
       const type = TAB_TYPE[currentTab];
       const facets = [[`project_type:${type}`]];
-      if (modrinthLoader && (currentTab === "模組" || currentTab === "光影")) {
+      if (modrinthLoader && currentTab === "模組") {
         facets.push([`categories:${modrinthLoader}`]);
+      }
+      if (modrinthLoader && currentTab === "光影") {
+        facets.push([`categories:iris`], [`categories:optifine`]);
       }
       if (mcVersion) facets.push([`versions:${mcVersion}`]);
 
@@ -400,9 +418,7 @@ function ModrinthModal({ onClose, loader, mcVersion }) {
         facets: JSON.stringify(facets),
       });
 
-      const res = await fetch(`https://api.modrinth.com/v2/search?${params}`, {
-        headers: { "User-Agent": "BlackCatLauncher/1.0.0" }
-      });
+      const res = await fetch(`https://api.modrinth.com/v2/search?${params}`);
       const data = await res.json();
       setItems(data.hits || []);
     } catch(e) {
@@ -665,7 +681,7 @@ function ProfileCard({ profile, selected, onClick, onRightClick }) {
 // ─── Settings Modal ───────────────────────────────────────────────────────────
 const PRIVACY_POLICY = `隱私權政策
 
-最後更新：2025 年 4 月
+最後更新：2026 年 4 月
 
 黑貓啟動器（以下稱「本軟體」）尊重您的隱私權。
 
@@ -693,11 +709,11 @@ const PRIVACY_POLICY = `隱私權政策
 • Adoptium（Java 下載）
 
 五、聯絡我們
-如有任何問題，請透過 GitHub Issues 聯絡我們。`;
+如有任何問題，請透過 Discord 聯絡我們。`;
 
 const TERMS_OF_USE = `使用條款
 
-最後更新：2025 年 4 月
+最後更新：2026 年 4 月
 
 請在使用黑貓啟動器前詳細閱讀以下條款。
 
@@ -723,7 +739,7 @@ const TERMS_OF_USE = `使用條款
 https://www.minecraft.net/zh-hans/eula
 
 六、條款變更
-我們保留隨時修改本條款的權利，修改後將於 GitHub 發布公告。`;
+我們保留隨時修改本條款的權利，修改後將於 Discord 發布公告。`;
 
 function SettingsModal({ onClose, user, onLogout }) {
   const [tab, setTab] = useState("about");
@@ -765,10 +781,10 @@ function SettingsModal({ onClose, user, onLogout }) {
                 <div style={{color:C.sub,fontSize:13,marginTop:4}}>v1.0.0</div>
               </div>
               {[
-                ["開發者", "Black Cat Studio"],
+                ["開發者", "乙級黑貓"],
                 ["授權", "MIT License"],
                 ["Minecraft", "非官方第三方啟動器"],
-                ["GitHub", "github.com/YOUR_GITHUB_USERNAME/black-cat-launcher"],
+                ["Discord", "https://discord.gg/5J3UagSWgK"],
               ].map(([k,v]) => (
                 <div key={k} style={{display:"flex",justifyContent:"space-between",
                   fontSize:13,padding:"6px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
