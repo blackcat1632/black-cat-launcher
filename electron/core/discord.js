@@ -73,3 +73,4 @@ function setLauncherActivity() {
     console.log('[Discord] 設定 activity 失敗:', e.message);
   }
 }
+module.exports = { connect, disconnect, setLauncherActivity, setPlayingActivity, setInstallingActivity, setIdleActivity };

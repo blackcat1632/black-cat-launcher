@@ -45,7 +45,10 @@ app.whenReady().then(() => {
   createWindow();
   discord.connect();
 });
-app.on('window-all-closed', () => { discord.disconnect(); if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => {
+  try { if (discord && typeof discord.disconnect === 'function') discord.disconnect(); } catch(e) {}
+  if (process.platform !== 'darwin') app.quit();
+});
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
 function send(ch, ...args) {
