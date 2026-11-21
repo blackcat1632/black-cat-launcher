@@ -15,7 +15,7 @@ const fs    = require('fs');
 const path  = require('path');
 const { app, shell } = require('electron');
 
-const GITHUB_REPO    = 'biggestlily1632-afk/black-cat-launcher';
+const GITHUB_REPO = 'blackcat1632/black-cat-launcher';
 const CURRENT_VERSION = app.getVersion(); // 從 package.json 讀取
 
 function httpsGetJson(url) {
