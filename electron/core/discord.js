@@ -52,7 +52,7 @@ function setLauncherActivity() {
       smallImageText: '黑貓啟動器 v1.0.0',
       startTimestamp: startTime || new Date(),
       buttons: [
-        { label: '下載啟動器', url: 'https://github.com/biggestlily1632/black-cat-launcher' },
+        { label: '下載啟動器', url: 'https://github.com/blackcat1632/black-cat-launcher' },
       ],
     });
   } catch(e) {
@@ -74,7 +74,7 @@ function setPlayingActivity(profileName, mcVersion, loader) {
       smallImageText: '黑貓啟動器',
       startTimestamp: startTime,
       buttons: [
-        { label: '下載啟動器', url: 'https://github.com/const GITHUB_REPO = 'blackcat1632/black-cat-launcher';' },
+        { label: '下載啟動器', url: 'https://github.com/const GITHUB_REPO = blackcat1632/black-cat-launcher' },
       ],
     });
   } catch(e) {
